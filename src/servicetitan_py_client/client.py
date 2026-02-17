@@ -110,6 +110,7 @@ class ServiceTitanClient:
         auth_url: Optional[str] = None,
         base_url: Optional[str] = None,
         local_timezone: str = "Australia/Sydney",
+        multitenant: bool = False
     ) -> None:
         if not client_id:
             raise ValueError("client_id must be provided")
@@ -133,6 +134,7 @@ class ServiceTitanClient:
         self.environment = environment
         self.auth_url = auth_url or self._DEFAULT_AUTH_URLS[environment]
         self.base_url = base_url or self._DEFAULT_BASE_URLS[environment]
+        self.multitenant = multitenant
 
         # Configure the local timezone for date conversions.  This
         # string will be resolved via ZoneInfo when needed by
@@ -162,6 +164,8 @@ class ServiceTitanClient:
             "client_id": self.client_id,
             "client_secret": self.client_secret,
         }
+        if self.multitenant:
+            payload['tenant'] = self.tenant
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
@@ -282,6 +286,7 @@ class ServiceTitanClient:
             If token refresh fails.
         """
         url = self._prepare_url(path)
+        print("Requesting on URL:", url)
         token = self._get_access_token()
         # Build headers
         req_headers = {
@@ -402,7 +407,8 @@ class ServiceTitanClient:
             params['page'] = page
             try:
                 resp = self.get(path, params=params, headers=headers, timeout=timeout)
-            except Exception:
+            except Exception as e:
+                print("ERROR IN ServiceTitanClient:", e)
                 break        
             if not isinstance(resp, dict):
                 break
