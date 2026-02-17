@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: servicetitan_py_client
-Version: 0.1.0
+Version: 0.1.1
 Summary: Python client for interacting with the ServiceTitan REST API
 Author-email: MTN Dev <developer@mastertradesnetwork.com>
 License: MIT
