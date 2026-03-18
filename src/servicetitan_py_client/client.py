@@ -421,6 +421,40 @@ class ServiceTitanClient:
             break
         return output
     
+    def get_all_export(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[float] = None,
+    ) -> Any:
+        """Performs GET requests until no more pages
+        """
+        output = []
+        last_from = "2025-01-01" # default start from 1/1/25
+        if params:
+            params['from'] = last_from
+        else:
+            params = {'from': last_from}
+
+        while True:
+            params['from'] = last_from
+            try:
+                resp = self.get(path, params=params, headers=headers, timeout=timeout)
+            except Exception as e:
+                print("ERROR IN ServiceTitanClient:", e)
+                break        
+            if not isinstance(resp, dict):
+                break
+            data = resp.get("data") or []
+            output.extend(data)
+            has_more = resp.get("hasMore")
+            if has_more:
+                last_from = resp.get("continueFrom")
+                continue
+            break
+        return output
+    
     def get_all_id_filter(
         self,
         path: str,
