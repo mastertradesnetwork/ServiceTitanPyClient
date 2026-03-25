@@ -192,13 +192,10 @@ class ServiceTitanClient:
             raise ServiceTitanAuthError(
                 "Authentication response did not contain an access_token"
             )
-        expires_in = token_info.get("expires_in")
-        # Default to 900 seconds if not specified, as per docs
-        if not isinstance(expires_in, (int, float)):
-            expires_in = 900
+        expires_in = 60
         # Current time plus expiry minus a small safety margin (10 seconds)
         self._access_token = access_token
-        self._token_expiry = time.time() + float(expires_in)
+        self._token_expiry = time.time() + float(expires_in) - 10
 
     def _get_access_token(self) -> str:
         """Return a valid access token, refreshing it if expired.
@@ -409,7 +406,7 @@ class ServiceTitanClient:
                 resp = self.get(path, params=params, headers=headers, timeout=timeout)
             except Exception as e:
                 print("ERROR IN ServiceTitanClient:", e)
-                break        
+                break
             if not isinstance(resp, dict):
                 break
             data = resp.get("data") or []
