@@ -53,12 +53,21 @@ from .exceptions import ServiceTitanAuthError, ServiceTitanAPIError
 
 class KeepAliveAdapter(HTTPAdapter):
     def init_poolmanager(self, *args, **kwargs):
-        kwargs["socket_options"] = [
+        socket_options = [
             (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-            (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30),
-            (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10),
-            (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5),
         ]
+        # Linux only
+        if hasattr(socket, "TCP_KEEPIDLE"):
+            socket_options.append((socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30))
+        if hasattr(socket, "TCP_KEEPINTVL"):
+            socket_options.append((socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10))
+        if hasattr(socket, "TCP_KEEPCNT"):
+            socket_options.append((socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5))
+        # macOS only
+        if hasattr(socket, "TCP_KEEPALIVE"):
+            socket_options.append((socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 30))
+
+        kwargs["socket_options"] = socket_options
         return super().init_poolmanager(*args, **kwargs)
 
 # Using sessions because GCP keeps cutting off connection after 60 seconds.
