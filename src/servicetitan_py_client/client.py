@@ -42,12 +42,28 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, Optional
 
+import socket
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from datetime import date as _date, time as _time, datetime as _datetime
 
 from .exceptions import ServiceTitanAuthError, ServiceTitanAPIError
 
+class KeepAliveAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["socket_options"] = [
+            (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+            (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30),
+            (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10),
+            (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5),
+        ]
+        return super().init_poolmanager(*args, **kwargs)
+
+# Using sessions because GCP keeps cutting off connection after 60 seconds.
+_session = requests.Session()
+_session.mount("https://", KeepAliveAdapter())
 
 class ServiceTitanClient:
     """A simple client for the ServiceTitan REST API.
@@ -170,7 +186,7 @@ class ServiceTitanClient:
             "Content-Type": "application/x-www-form-urlencoded",
         }
         try:
-            response = requests.post(self.auth_url, data=payload, headers=headers)
+            response = _session.post(self.auth_url, data=payload, headers=headers)
         except Exception as exc:
             raise ServiceTitanAuthError(f"Failed to connect to auth server: {exc}") from exc
 
@@ -298,7 +314,7 @@ class ServiceTitanClient:
                     continue
                 req_headers[key] = value
         try:
-            response = requests.request(
+            response = _session.request(
                 method=method.upper(),
                 url=url,
                 params=params,
